@@ -2,6 +2,15 @@ export let activeEffect: undefined | ReactiveEffect = void 0;
 
 const targetMap = new WeakMap();
 
+function cleanup(effect: ReactiveEffect) {
+  const { deps } = effect;
+  for (let i = 0; i < deps.length; i++) {
+    // 解除effect，重新收集依赖
+    deps[i].delete(effect);
+  }
+  effect.deps.length = 0;
+}
+
 class ReactiveEffect {
   // 默认是激活状态
   public active = true;
@@ -18,12 +27,15 @@ class ReactiveEffect {
     }
 
     // 调用回调函数，进行依赖收集
-    this.parent = activeEffect;
-    activeEffect = this;
-    const result = this.fn();
-    activeEffect = this.parent;
-
-    return result;
+    try {
+      this.parent = activeEffect;
+      activeEffect = this;
+      // 将之前收集的依赖清空
+      cleanup(this);
+      return this.fn();
+    } finally {
+      activeEffect = this.parent;
+    }
   }
 }
 
@@ -64,12 +76,16 @@ export function trigger(
   // 触发的值不在模板中使用
   if (!depsMap) return;
 
-  const effects = depsMap.get(key) as Set<ReactiveEffect>;
-  effects &&
-    effects.forEach((effectFn) => {
-      // 防止无限递归
-      if (effectFn !== activeEffect) {
-        effectFn.run();
-      }
-    });
+  let effects = depsMap.get(key) as Set<ReactiveEffect>;
+
+  if (effects) {
+    effects = new Set(effects);
+    effects &&
+      effects.forEach((effectFn) => {
+        // 防止无限递归
+        if (effectFn !== activeEffect) {
+          effectFn.run();
+        }
+      });
+  }
 }

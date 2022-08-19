@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module">
+    import { reactive, effect } from '../../dist/mini-vue.esm.js'
+    const state = reactive({ name: "curry", age: 30, flag: true })
+    effect(() => {
+      console.log('render');
+      document.querySelector('#app').innerHTML = state.flag ? state.name : state.age
+    })
+    setTimeout(() => {
+      state.flag = false
+      setTimeout(() => {
+        state.name = "james"
+        console.log('原则上不更新');
+      }, 1000)
+    }, 1000)
+
+  </script>
+</body>
+
+</html>
