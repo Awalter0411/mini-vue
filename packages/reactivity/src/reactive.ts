@@ -23,7 +23,7 @@ export function reactive(target) {
   }
 
   // 判断weakmap是否存在代理对象
-  let existingProxy = reactiveMap.get(target);
+  const existingProxy = reactiveMap.get(target);
   if (existingProxy) {
     return existingProxy;
   }

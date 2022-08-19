@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module">
+    import { reactive, effect } from '../../dist/mini-vue.esm.js'
+    const state = reactive({ name: "curry", age: 30 })
+    effect(() => {
+      state.age = 19
+      document.querySelector('#app').innerHTML = `my name is ${state.name} age is ${state.age}`
+    })
+    setTimeout(() => {
+      state.name = 'james'
+      console.log(123)
+    }, 1000)
+  </script>
+</body>
+
+</html>
