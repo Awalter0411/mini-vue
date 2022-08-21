@@ -18,8 +18,7 @@ class ReactiveEffect {
   public parent: undefined | ReactiveEffect = void 0;
   // 解决分支切换清空effect
   public deps: Set<ReactiveEffect>[] = [];
-  constructor(public fn) {}
-
+  constructor(public fn, public scheduler) {}
   run() {
     // 如果是非激活，只需要执行函数，不需要进行依赖收集
     if (!this.active) {
@@ -37,11 +36,24 @@ class ReactiveEffect {
       activeEffect = this.parent;
     }
   }
+  stop() {
+    if (this.active) {
+      this.active = false;
+      // 停止effect的收集
+      cleanup(this);
+    }
+  }
 }
 
-export function effect(fn) {
-  const _effect = new ReactiveEffect(fn);
+export function effect(fn, options) {
+  const _effect = new ReactiveEffect(fn, options.scheduler);
+  // 默认执行一次
   _effect.run();
+
+  // @todo
+  const runner = _effect.run.bind(_effect) as any;
+  runner.effect = _effect;
+  return runner;
 }
 
 // 收集依赖
@@ -65,13 +77,7 @@ export function track(target: object, type: string, key: string) {
   }
 }
 
-export function trigger(
-  target: object,
-  type: string,
-  key: string,
-  value,
-  oldValue
-) {
+export function trigger(target: object, type: string, key: string) {
   const depsMap = targetMap.get(target);
   // 触发的值不在模板中使用
   if (!depsMap) return;
@@ -84,7 +90,12 @@ export function trigger(
       effects.forEach((effectFn) => {
         // 防止无限递归
         if (effectFn !== activeEffect) {
-          effectFn.run();
+          // 如果用户传入了调度函数
+          if (effectFn.scheduler) {
+            effectFn.scheduler();
+          } else {
+            effectFn.run();
+          }
         }
       });
   }

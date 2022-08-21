@@ -16,7 +16,7 @@ export const mutableHandlers = {
     // 旧值和新值是否一样
     if (!oldValue !== value) {
       // 更新
-      trigger(target, "set", key, value, oldValue);
+      trigger(target, "set", key);
     }
     return result;
   },
