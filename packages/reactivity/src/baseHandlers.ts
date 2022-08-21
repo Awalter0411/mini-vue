@@ -1,5 +1,6 @@
+import { isObject } from "@mini-vue/shared";
 import { track, trigger } from "./effect";
-import { ReactiveFlags } from "./reactive";
+import { reactive, ReactiveFlags } from "./reactive";
 
 export const mutableHandlers = {
   get(target, key, recevier) {
@@ -8,7 +9,12 @@ export const mutableHandlers = {
     }
     // 收集依赖
     track(target, "get", key);
-    return Reflect.get(target, key, recevier);
+    const res = Reflect.get(target, key, recevier);
+    // 深度代理
+    if (isObject(res)) {
+      return reactive(res);
+    }
+    return res;
   },
   set(target, key, value, recevier) {
     const oldValue = target[key];

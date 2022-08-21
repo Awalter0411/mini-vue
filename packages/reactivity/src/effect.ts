@@ -11,7 +11,7 @@ function cleanup(effect: ReactiveEffect) {
   effect.deps.length = 0;
 }
 
-class ReactiveEffect {
+export class ReactiveEffect {
   // 默认是激活状态
   public active = true;
   // 使用parent 解决嵌套effect
@@ -45,8 +45,8 @@ class ReactiveEffect {
   }
 }
 
-export function effect(fn, options) {
-  const _effect = new ReactiveEffect(fn, options.scheduler);
+export function effect(fn, options?) {
+  const _effect = new ReactiveEffect(fn, options?.scheduler);
   // 默认执行一次
   _effect.run();
 
@@ -68,12 +68,18 @@ export function track(target: object, type: string, key: string) {
   if (!dep) {
     depsMap.set(key, (dep = new Set()));
   }
-  const shouldTrack = !dep.has(activeEffect);
-  if (shouldTrack) {
-    // 一个属性对应多个effect
-    dep.add(activeEffect);
-    // 一个effect对应多个属性
-    activeEffect.deps.push(dep);
+  trackEffects(dep);
+}
+
+export function trackEffects(dep: Set<any>) {
+  if (activeEffect) {
+    const shouldTrack = !dep.has(activeEffect);
+    if (shouldTrack) {
+      // 一个属性对应多个effect
+      dep.add(activeEffect);
+      // 一个effect对应多个属性
+      activeEffect.deps.push(dep);
+    }
   }
 }
 
@@ -82,21 +88,25 @@ export function trigger(target: object, type: string, key: string) {
   // 触发的值不在模板中使用
   if (!depsMap) return;
 
-  let effects = depsMap.get(key) as Set<ReactiveEffect>;
+  const effects = depsMap.get(key) as Set<ReactiveEffect>;
 
   if (effects) {
-    effects = new Set(effects);
-    effects &&
-      effects.forEach((effectFn) => {
-        // 防止无限递归
-        if (effectFn !== activeEffect) {
-          // 如果用户传入了调度函数
-          if (effectFn.scheduler) {
-            effectFn.scheduler();
-          } else {
-            effectFn.run();
-          }
-        }
-      });
+    triggerEffects(effects);
   }
+}
+
+export function triggerEffects(effects) {
+  effects = new Set(effects);
+  effects &&
+    effects.forEach((effectFn) => {
+      // 防止无限递归
+      if (effectFn !== activeEffect) {
+        // 如果用户传入了调度函数
+        if (effectFn.scheduler) {
+          effectFn.scheduler();
+        } else {
+          effectFn.run();
+        }
+      }
+    });
 }
